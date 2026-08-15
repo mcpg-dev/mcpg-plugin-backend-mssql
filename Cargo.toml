@@ -1,0 +1,54 @@
+[package]
+name = "mcpg-plugin-backend-mssql"
+version = "0.1.0-alpha.15"
+license = "BUSL-1.1"
+edition = "2024"
+description = """
+Microsoft SQL Server (TDS) backend binding plugin for mcpg. Runs a
+parameterised query as MCP tools/resources — placeholder values are CEL-
+computed from the tool arguments and bound as SQL parameters (never string-
+interpolated, so injection-safe), with a pooled tiberius connection and
+`${env.X}` / `vault://` secret resolution for the login password. Complements
+the `sql` backend (Postgres/MySQL/SQLite), which sqlx can't drive for MSSQL.
+"""
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+cdylib-export = []
+static-firstparty = []
+# Gates the docker-backed SQL Server integration suite so plain `cargo test`
+# stays cheap. Run: `cargo test -p mcpg-plugin-backend-mssql --features integration-tests`.
+integration-tests = []
+
+[dependencies]
+mcpg-plugin-protocol = { git = "https://github.com/mcpg-dev/mcpg-plugin-protocol", tag = "v0.1.0-beta.13", version = "=0.1.0-beta.13" }
+mcpg-plugin-sdk      = { git = "https://github.com/mcpg-dev/mcpg-plugin-sdk", tag = "v0.1.0-beta.13", version = "=0.1.0-beta.13", features = ["static-firstparty"] }
+mcpg-plugin-host     = { git = "https://github.com/mcpg-dev/mcpg-plugin-host", tag = "v0.1.0-beta.13", version = "=0.1.0-beta.13" }
+async-trait    = "0.1"
+base64         = "0.22"
+# CEL for computed query parameters (mirrors the sql backend's param_exprs).
+cel            = "0.13"
+chrono         = { version = "0.4", features = ["clock"] }
+deadpool       = "0.13"
+metrics        = "0.24"
+# TDS / SQL Server driver. rustls (NOT native-tls — deny.toml bans
+# openssl/native-tls). tiberius's `rustls` feature pulls tokio-rustls 0.24 /
+# rustls 0.21 — the same legacy stack as ldap3, covered by the existing
+# scoped deny.toml ignores (RUSTSEC-2026-0098/-0099/-0104).
+tiberius       = { version = "0.12", default-features = false, features = ["rustls", "tds73", "chrono", "rust_decimal"] }
+serde          = { version = "1", features = ["derive"] }
+serde_json     = "1"
+tokio          = { version = "1", features = ["sync", "rt", "rt-multi-thread", "macros", "time", "net"] }
+# `compat` bridges tokio's AsyncRead/Write to the futures traits tiberius wants.
+tokio-util     = { version = "0.7", features = ["compat"] }
+tracing        = "0.1"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread", "net", "io-util", "time"] }
+async-trait = "0.1"
+# Docker-backed SQL Server integration test (async runner). Dev-dep only.
+testcontainers = "0.27"
+

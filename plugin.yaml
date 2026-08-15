@@ -1,0 +1,17 @@
+schema: mcpg.dev/plugin/v1
+id: dev.mcpg.backend.mssql
+name: MSSQL Binding
+license: BUSL-1.1
+description: |
+  Runs a Microsoft SQL Server (TDS) statement as MCP tools and resources.
+  The query uses `@P1, @P2, …` placeholders bound positionally from
+  `params` — an ordered list of CEL expressions evaluated against the tool
+  arguments. Values are bound as SQL parameters (never string-interpolated),
+  so caller input cannot alter the statement (injection-safe). Connections
+  are pooled (tiberius) over rustls TLS; the login password resolves through
+  the gateway secret-resolver (`${env.X}` / `vault://...`). `op: query`
+  returns rows; `op: execute` returns rows-affected.
+class: backend
+runtime: native-cdylib-v1
+protocol_version: "1.0"
+required_capabilities: [network_outbound]
